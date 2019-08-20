@@ -115,14 +115,172 @@ int get_correct_year_geo(long days)
   return close_year - years_ahead;
 }
 
-struct tm *convert_to_georgian(int year, int mon, int day, struct tm *ltm)
+int get_correct_year_per(long days)
 {
-  int gyear, gmon, gday;
-  long days;
-  int leap_years_geo;
-  int leap_years_per;
+  int close_year = days / 365;
+  int leap_years = count_leap_years_per(close_year);
+  int years_ahead = leap_years / 365;
+  return close_year - years_ahead;
+}
+
+int get_date_from_days_geo(int days, int *year, int *mon, int *day)
+{
   int thirtyone_months[7] = {1, 3, 5, 7, 8, 10, 12};
   int thirty_months[4] = {4, 6, 9, 11};
+
+  int correct_year_geo = get_correct_year_geo(days);
+  int leap_years_geo = count_leap_years_geo(correct_year_geo);
+
+  days -= leap_years_geo;
+
+  *year = (int) days / 365;
+  (*year)++;
+
+  days = days % 365;
+
+  int c = 0;
+  int is_cur_year_leap_geo = is_leap_year_geo(*year);
+  while (days > 28)
+  {
+    if (c != 2 && days < 30)
+      break;
+
+    c++;
+    if (is_in_array(c, thirtyone_months, sizeof(thirtyone_months) / sizeof(thirtyone_months[0])))
+    {
+      if (days <= 31)
+      {
+        --c;
+        break;
+      }
+      days -= 31;
+    }
+    else if (is_in_array(c, thirty_months, sizeof(thirtyone_months) / sizeof(thirtyone_months[0])))
+    {
+      if (days <= 30)
+      {
+        --c;
+        break;
+      }
+      days -= 30;
+    }
+    else if (c == 2)
+    {
+      if (is_cur_year_leap_geo && days < 29)
+      {
+        --c;
+        break;
+      }
+
+      if (!is_cur_year_leap_geo && days < 28)
+      {
+        --c;
+        break;
+      }
+      days -= is_cur_year_leap_geo ? 29 : 28;
+    }
+  }
+
+  *mon = ++c;
+  *day = days;
+
+  return 1;
+}
+
+int get_date_from_days_per(long days, int *year, int *mon, int *day)
+{
+  int correct_year_per = get_correct_year_per(days);
+  int leap_years_per = count_leap_years_per(correct_year_per);
+
+  days -= leap_years_per;
+
+  *year = (int) days / 365;
+  (*year)++;
+
+  days = days % 365;
+  printf("days: %ld\n", days);
+
+  int is_cur_year_leap_per = is_leap_year_per(*year);
+
+  int i = 1;
+  for (; i < 13; i++)
+  {
+    if (days < 31)
+      break;
+
+    if (i == 12)
+    {
+      if (i == is_cur_year_leap_per ? 30 : 29)
+      {
+        i--;
+        break;
+      }
+      days -= is_cur_year_leap_per ? 30 : 29;
+    }
+    else if (i > 6)
+    {
+      if (i == 30)
+      {
+        i--;
+        break;
+      }
+      days -= 30;
+    }
+    else 
+    {
+      if (i == 31)
+      {
+        i--;
+        break;
+      }
+      days -= 31;
+    }
+  }
+
+  *mon = i;
+  *day = days;
+
+  return 1;
+}
+
+
+long count_days_since_geo(int year, int mon, int day)
+{
+  long days;
+  int leap_years_geo;
+  int is_cur_year_leap_geo;
+  int thirtyone_months[7] = {1, 3, 5, 7, 8, 10, 12};
+  int thirty_months[4] = {4, 6, 9, 11};
+
+  is_cur_year_leap_geo = is_leap_year_geo(year);
+  year--;
+  leap_years_geo = count_leap_years_geo(year);
+
+  days = year * 365;
+  days += leap_years_geo;
+
+  mon--;
+  for (int i=1; i < mon + 1; i++)
+  {
+    if (is_in_array(i, thirtyone_months, sizeof(thirtyone_months) / sizeof(thirtyone_months[0])))
+      days += 31;
+
+    if (is_in_array(i, thirty_months, sizeof(thirty_months) / sizeof(thirty_months[0])))
+      days += 30;
+
+    if (i == 2)
+      days += is_cur_year_leap_geo ? 29 : 28;
+  }
+
+  days += day;
+
+  return days;
+}
+
+long count_days_since_per(int year, int mon, int day)
+{
+  long days;
+  int leap_years_per;
 
   year--;
   days = year * 365;
@@ -141,76 +299,24 @@ struct tm *convert_to_georgian(int year, int mon, int day, struct tm *ltm)
   }
 
   days += day;
+
+  return days;
+}
+
+struct tm *convert_to_georgian(int year, int mon, int day, struct tm *ltm)
+{
+  int gyear, gmon, gday;
+  long days = count_days_since_per(year, mon, day);
   days += 226895; // difference of persian and gorgian in days
+  get_date_from_days_geo(days, &gyear, &gmon, &gday);
+  return make_tm(gyear, gmon, gday, ltm);
+}
 
-  printf("days: %ld\n", days);
+int convert_to_persian(int year, int mon, int day, int *pyear, int *pmon, int *pday)
+{
+  long days = count_days_since_geo(year, mon, day);
+  days -= 226895; // difference of persian and gorgian in days
+  get_date_from_days_per(days, pyear, pmon, pday);
 
-  int correct_year_geo = get_correct_year_geo(days);
-  leap_years_geo = count_leap_years_geo(correct_year_geo);
-
-  printf("Leap year per: %d\n", leap_years_per);
-  printf("Leap year geo: %d\n", leap_years_geo);
-
-  days -= leap_years_geo;
-  printf("days after leap deduction: %ld\n", days);
-
-  gyear = (int) days / 365;
-  gyear++;
-
-  days = days % 365;
-
-  int c = 0;
-  int is_cur_year_leap_geo = is_leap_year_geo(gyear);
-  printf("is_cur_year_leap_geo: (year: %d) %d\n", gyear, is_cur_year_leap_geo);
-  while (days > 28)
-  {
-    
-    if (c != 2 && days < 30)
-      break;
-
-    c++;
-    if (is_in_array(c, thirtyone_months, sizeof(thirtyone_months) / sizeof(thirtyone_months[0])))
-    {
-      if (days <= 31)
-      {
-        --c;
-        break;
-      }
-      days -= 31;
-      printf("month: %d, deducted: 31\n", c);
-    }
-    else if (is_in_array(c, thirty_months, sizeof(thirtyone_months) / sizeof(thirtyone_months[0])))
-    {
-      if (days <= 30)
-      {
-        --c;
-        break;
-      }
-      days -= 30;
-      printf("month: %d, deducted: 30\n", c);
-    }
-    else if (c == 2)
-    {
-      if (is_cur_year_leap_geo && days < 29)
-      {
-        --c;
-        break;
-      }
-
-      if (!is_cur_year_leap_geo && days < 28)
-      {
-        --c;
-        break;
-      }
-      days -= is_cur_year_leap_geo ? 29 : 28;
-      printf("month: %d, deducted: %d\n", c, is_cur_year_leap_geo ? 29 : 28);
-    }
-  }
-
-  printf("c is %d\n", c);
-  gmon = ++c;
-  gday = days;
-
-  printf("The equivalent georgian date: %4d/%02d/%02d\n", gyear, gmon, gday);
-  
+  return 1;
 }
