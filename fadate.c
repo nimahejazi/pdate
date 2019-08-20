@@ -198,7 +198,6 @@ int get_date_from_days_per(long days, int *year, int *mon, int *day)
   (*year)++;
 
   days = days % 365;
-  printf("days: %ld\n", days);
 
   int is_cur_year_leap_per = is_leap_year_per(*year);
 
