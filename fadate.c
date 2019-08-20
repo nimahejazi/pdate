@@ -48,36 +48,86 @@ int is_in_array(int no, int *arr, int size)
   return 0;
 }
 
-/* 
-** with a number of days, we don't know how many years are
-** leap years. Because simply divide it to 365 give a year
-** with all leap years (days) to it. For converting it to
-** a very distance future, it might add 1 day more.
-** With following formula we remove 
-*/
-int count_leap_years(int days)
+int is_leap_year_geo(int year)
 {
-  int estimate_year = (int) days / 365;
-  int years_ahead = (int) estimate_year / 4 / 365;
-  int correct_year = estimate_year - years_ahead;
-  correct_year -= 1; // current year doesn't count
-  return (int) floor(correct_year / 4);
+  int leap_year = 0;
+  leap_year = (year % 4 == 0) && (year % 100 != 0);
+  if ((year % 100) == 0)
+    leap_year = (year % 400 == 0);
+
+  return leap_year;
+}
+
+int is_leap_year_per(int year)
+{
+  // for year 438 to 3293, mod of 128 should be among these numbers
+  int result_check[] = {
+    0, 4, 8, 12, 16, 20, 24, 29, 33, 37, 41, 45, 49, 53, 57,
+    62, 66, 70, 74, 78, 82, 86, 90, 95, 99, 103, 107, 111,
+    115, 119, 124
+  };
+  // for year 1 to 473, 4 numbers are different (from wikipedia)
+  int result_check_refined[] = {
+    0, 4, 8, 12, 16, 20, 25, 29, 33, 37, 41, 45, 49, 53, 58,
+    62, 66, 70, 74, 78, 82, 86, 91, 95, 99, 103, 107, 111,
+    115, 120, 124
+  };
+  int leap_year = 0;
+  if (year < 438)
+    leap_year = is_in_array(year % 128, result_check_refined, sizeof(result_check_refined) / sizeof(result_check_refined[0]));
+  else
+    leap_year = is_in_array(year % 128, result_check, sizeof(result_check) / sizeof(result_check[0]));
+
+  return leap_year;
+}
+
+int count_leap_years_geo(int year)
+{
+  int leap_years = 0;
+  while (year)
+  {
+    if (is_leap_year_geo(year))
+      leap_years++;
+    year--;
+  }
+
+  return leap_years;
+}
+
+int count_leap_years_per(int year)
+{
+  int leap_years = 0;
+  while (year)
+  {
+    if (is_leap_year_per(year))
+      leap_years++;
+    year--;
+  }
+
+  return leap_years;
+}
+
+int get_correct_year_geo(long days)
+{
+  int close_year = days / 365;
+  int leap_years = count_leap_years_geo(close_year);
+  int years_ahead = leap_years / 365;
+  return close_year - years_ahead;
 }
 
 struct tm *convert_to_georgian(int year, int mon, int day, struct tm *ltm)
 {
   int gyear, gmon, gday;
   long days;
-  int leap_years_georgian;
-  int leap_years;
+  int leap_years_geo;
+  int leap_years_per;
   int thirtyone_months[7] = {1, 3, 5, 7, 8, 10, 12};
   int thirty_months[4] = {4, 6, 9, 11};
 
   year--;
   days = year * 365;
-  leap_years = floor((year + 1) / 4);
-  printf("leap_years persian: %d\n", leap_years);
-  days += leap_years;
+  leap_years_per = count_leap_years_per(year);
+  days += leap_years_per;
 
   mon--;
   if (mon > 6)
@@ -91,55 +141,73 @@ struct tm *convert_to_georgian(int year, int mon, int day, struct tm *ltm)
   }
 
   days += day;
-  days += 226899; // difference of persian and gorgian in days
+  days += 226895; // difference of persian and gorgian in days
 
-  printf("%ld\n", days);
+  printf("days: %ld\n", days);
 
-  leap_years_georgian = count_leap_years(days);
+  int correct_year_geo = get_correct_year_geo(days);
+  leap_years_geo = count_leap_years_geo(correct_year_geo);
 
-  days -= leap_years_georgian;
+  printf("Leap year per: %d\n", leap_years_per);
+  printf("Leap year geo: %d\n", leap_years_geo);
+
+  days -= leap_years_geo;
+  printf("days after leap deduction: %ld\n", days);
 
   gyear = (int) days / 365;
   gyear++;
 
   days = days % 365;
 
-  printf("leap years georgian: %d\n", leap_years_georgian);
-  printf("days left: %ld\n", days);
-
-  
-  int is_cur_gyear_leap = 0;
-  int is_last_gyear_leap = 0;
-  if ((gyear % 4) == 0)
-    is_cur_gyear_leap = 1;
-
-  if (((gyear - 1) % 4) == 0)
-    is_last_gyear_leap = 1;
-
-  printf("is_cur_gyear_leap: %d\n", is_cur_gyear_leap);
-  printf("is_last_gyear_leap: %d\n", is_last_gyear_leap);
-
   int c = 0;
+  int is_cur_year_leap_geo = is_leap_year_geo(gyear);
+  printf("is_cur_year_leap_geo: (year: %d) %d\n", gyear, is_cur_year_leap_geo);
   while (days > 28)
   {
+    
+    if (c != 2 && days < 30)
+      break;
+
     c++;
     if (is_in_array(c, thirtyone_months, sizeof(thirtyone_months) / sizeof(thirtyone_months[0])))
     {
-      printf("month %d is in array 31 days\n", c);
+      if (days <= 31)
+      {
+        --c;
+        break;
+      }
       days -= 31;
+      printf("month: %d, deducted: 31\n", c);
     }
     else if (is_in_array(c, thirty_months, sizeof(thirtyone_months) / sizeof(thirtyone_months[0])))
     {
-      printf("month %d is in array 30 days\n", c);
+      if (days <= 30)
+      {
+        --c;
+        break;
+      }
       days -= 30;
+      printf("month: %d, deducted: 30\n", c);
     }
     else if (c == 2)
     {
-      printf("month %d is %d days\n", c, is_cur_gyear_leap ? 29 : 28);
-      days -= is_cur_gyear_leap ? 29 : 28;
+      if (is_cur_year_leap_geo && days < 29)
+      {
+        --c;
+        break;
+      }
+
+      if (!is_cur_year_leap_geo && days < 28)
+      {
+        --c;
+        break;
+      }
+      days -= is_cur_year_leap_geo ? 29 : 28;
+      printf("month: %d, deducted: %d\n", c, is_cur_year_leap_geo ? 29 : 28);
     }
   }
 
+  printf("c is %d\n", c);
   gmon = ++c;
   gday = days;
 
