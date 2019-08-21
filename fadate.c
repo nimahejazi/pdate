@@ -5,18 +5,34 @@
 #include <stdio.h>
 #include <math.h>
 
-int split_date_str(char *date, int *year, int *mon, int *day, char *splitter)
+int split_date_str(char *date, int *year, int *mon, int *day, char *splitter, char *format)
 {
-  char *_year = strtok(date, splitter);
-  char *_mon = strtok(NULL, splitter);
-  char *_day = strtok(NULL, splitter);
+  char *_format[3];
+  _format[0] = strtok(format, splitter);
+  _format[1] = strtok(NULL, splitter);
+  _format[2] = strtok(NULL, splitter);
 
-  if (!(_year &&  _mon && _day))
+  char *_part[3];
+  _part[0] = strtok(date, splitter);
+  _part[1] = strtok(NULL, splitter);
+  _part[2] = strtok(NULL, splitter);
+
+
+  if (!(*_part[0] && *_part[1] && *_part[2]))
     return 1;
 
-  *year = atoi(_year);
-  *mon = atoi(_mon);
-  *day = atoi(_day);
+  printf("atoi(_part[0]): %d\n", atoi(_part[0]));
+  printf("atoi(_part[1]): %d\n", atoi(_part[1]));
+  printf("atoi(_part[2]): %d\n", atoi(_part[2]));
+  for (int i=0; i < 3; i++)
+  {
+    if (strcmp(_format[i], "YYYY") == 0 || strcmp(_format[i], "YY") == 0)
+        *year = atoi(_part[i]);
+    else if (strcmp(_format[i], "MM") == 0 || strcmp(_format[i], "M") == 0)
+        *mon = atoi(_part[i]);
+    else if (strcmp(_format[i], "DD") == 0 || strcmp(_format[i], "D") == 0)
+        *day = atoi(_part[i]);
+  }
 
   return 0;
 }
