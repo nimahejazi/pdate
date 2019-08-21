@@ -21,9 +21,6 @@ int split_date_str(char *date, int *year, int *mon, int *day, char *splitter, ch
   if (!(*_part[0] && *_part[1] && *_part[2]))
     return 1;
 
-  printf("atoi(_part[0]): %d\n", atoi(_part[0]));
-  printf("atoi(_part[1]): %d\n", atoi(_part[1]));
-  printf("atoi(_part[2]): %d\n", atoi(_part[2]));
   for (int i=0; i < 3; i++)
   {
     if (strcmp(_format[i], "YYYY") == 0 || strcmp(_format[i], "YY") == 0)
@@ -252,7 +249,7 @@ int get_date_from_days_per(long days, int *year, int *mon, int *day)
     }
   }
 
-  *mon = i;
+  *mon = ++i;
   *day = days;
 
   return 1;
