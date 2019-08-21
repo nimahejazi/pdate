@@ -249,7 +249,7 @@ int get_date_from_days_per(long days, int *year, int *mon, int *day)
     }
   }
 
-  *mon = ++i;
+  *mon = i;
   *day = days;
 
   return 1;
