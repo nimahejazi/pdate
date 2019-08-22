@@ -8,7 +8,7 @@ int main(int argc, char **argv)
 {
   char *date_to_convert;
   /* default arguments */
-  int to_georgian = 0;
+  int tog = 0; // to georgian
 
 
   struct tm *tml = malloc(sizeof(struct tm));
@@ -19,7 +19,7 @@ int main(int argc, char **argv)
   while(argv++, --argc)
   {
     if (!strcmp(*argv, "-g") || !strcmp(*argv, "--to-georgian"))
-      to_georgian = 1;
+      tog = 1;
     
     if (argc == 1)
     {
@@ -35,14 +35,14 @@ int main(int argc, char **argv)
   strcpy(format, "YYYY/MM/DD");
   split_date_str(date_to_convert, &year, &mon, &day, "/", format);
 
-  if (to_georgian)
+  if (tog)
   {
-    convert_to_georgian(year, mon, day, tml);
-    printf("%4d/%02d/%02d\n", tml->tm_year + 1900, tml->tm_mon, tml->tm_mday);
+    to_georgian(year, mon, day, tml);
+    printf("%4d/%02d/%02d\n", tml->tm_year + 1900, tml->tm_mon + 1, tml->tm_mday);
   }
   else 
   {
-    convert_to_persian(year, mon, day, &pyear, &pmon, &pday);
+    to_shamsi(year, mon, day, &pyear, &pmon, &pday);
     printf("%4d/%02d/%02d\n", pyear, pmon, pday);
   }
 

@@ -1,5 +1,3 @@
+int to_shamsi(int gyear, int gmon, int gday, int *pyear, int *pmon, int *pday);
+int to_georgian(int pyear, int pmon, int pday, struct tm *tml);
 int split_date_str(char *date, int *year, int *mon, int *day, char *splitter, char *format);
-struct tm *make_tm(int year, int mon, int day, struct tm *ltm);
-struct tm *make_tm_cur(struct tm *ltm);
-struct tm *convert_to_georgian(int year, int mon, int day, struct tm *ltm);
-int convert_to_persian(int year, int mon, int day, int *pyear, int *pmon, int *pday);
